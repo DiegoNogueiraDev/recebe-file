@@ -48,6 +48,51 @@
             padding: 40px;
         }
 
+        .auth-container {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .auth-container input {
+            width: 300px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1em;
+            margin: 10px;
+        }
+
+        .auth-container input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .status-bar {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-bar.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .file-hash {
+            font-family: monospace;
+            font-size: 0.8em;
+            color: #666;
+            word-break: break-all;
+            margin-top: 5px;
+        }
+
         .upload-area {
             border: 3px dashed #ddd;
             border-radius: 10px;
@@ -203,11 +248,21 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📦 Upload de Arquivos</h1>
-            <p>Envie seus arquivos compactados de forma segura</p>
+            <h1>🔒 Upload Seguro de Arquivos</h1>
+            <p>Envie seus arquivos compactados com segurança e criptografia</p>
         </div>
         
         <div class="content">
+            <div class="auth-container" id="authContainer">
+                <h3>🔐 Autenticação Requerida</h3>
+                <p>Digite a senha para acessar o sistema:</p>
+                <input type="password" id="passwordInput" placeholder="Digite a senha">
+                <button class="btn" onclick="authenticate()">Entrar</button>
+            </div>
+            
+            <div class="status-bar" id="statusBar"></div>
+            
+            <div id="uploadInterface" style="display: none;">
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
                 <div class="upload-text">
@@ -235,6 +290,7 @@
             </div>
 
             <div class="files-list" id="filesList"></div>
+            </div>
         </div>
     </div>
 
@@ -245,9 +301,66 @@
         const progressBar = document.getElementById('progressBar');
         const message = document.getElementById('message');
         const filesList = document.getElementById('filesList');
+        const authContainer = document.getElementById('authContainer');
+        const uploadInterface = document.getElementById('uploadInterface');
+        const statusBar = document.getElementById('statusBar');
+        const passwordInput = document.getElementById('passwordInput');
+        
+        let authToken = null;
+        let isAuthenticated = false;
 
+        // Authentication function
+        function authenticate() {
+            const password = passwordInput.value;
+            
+            fetch('/auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    authToken = data.token;
+                    isAuthenticated = true;
+                    authContainer.style.display = 'none';
+                    uploadInterface.style.display = 'block';
+                    showStatus('Autenticado com sucesso!', 'success');
+                    loadFiles();
+                } else {
+                    showStatus('Senha incorreta', 'error');
+                    passwordInput.value = '';
+                }
+            })
+            .catch(error => {
+                showStatus('Erro de conexão', 'error');
+            });
+        }
+        
+        // Status display function
+        function showStatus(message, type) {
+            statusBar.textContent = message;
+            statusBar.className = `status-bar ${type}`;
+            statusBar.style.display = 'block';
+            
+            setTimeout(() => {
+                statusBar.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Password input enter key
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                authenticate();
+            }
+        });
+        
         uploadArea.addEventListener('click', () => {
-            fileInput.click();
+            if (isAuthenticated) {
+                fileInput.click();
+            }
         });
 
         uploadArea.addEventListener('dragover', (e) => {
@@ -263,19 +376,28 @@
             e.preventDefault();
             uploadArea.classList.remove('dragover');
             
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                uploadFile(files[0]);
+            if (isAuthenticated) {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    uploadFile(files[0]);
+                }
+            } else {
+                showStatus('Autenticação necessária', 'error');
             }
         });
 
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
+            if (isAuthenticated && e.target.files.length > 0) {
                 uploadFile(e.target.files[0]);
             }
         });
 
         function uploadFile(file) {
+            if (!isAuthenticated || !authToken) {
+                showStatus('Token de autenticação necessário', 'error');
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('file', file);
 
@@ -315,6 +437,7 @@
             });
 
             xhr.open('POST', '/upload');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
             xhr.send(formData);
         }
 
@@ -329,7 +452,15 @@
         }
 
         function loadFiles() {
-            fetch('/files')
+            if (!isAuthenticated || !authToken) {
+                return;
+            }
+            
+            fetch('/files', {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken
+                }
+            })
                 .then(response => response.json())
                 .then(data => {
                     if (data.files && data.files.length > 0) {
@@ -352,9 +483,12 @@
                 html += `
                     <div class="file-item">
                         <div class="file-info">
-                            <div class="file-name">${file.filename}</div>
+                            <div class="file-name">🔒 ${file.filename}</div>
                             <div class="file-details">
                                 Tamanho: ${file.sizeFormatted} | Enviado em: ${uploadDate}
+                            </div>
+                            <div class="file-hash">
+                                SHA256: ${file.hash || 'N/A'}
                             </div>
                         </div>
                     </div>
@@ -364,7 +498,18 @@
             filesList.innerHTML = html;
         }
 
-        loadFiles();
+        // Check if already authenticated on page load
+        fetch('/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.authenticated) {
+                    // Try to get token from session or prompt for re-auth
+                    showStatus('Sessão expirada, faça login novamente', 'error');
+                }
+            })
+            .catch(error => {
+                console.log('Server status check failed');
+            });
     </script>
 </body>
 </html>
