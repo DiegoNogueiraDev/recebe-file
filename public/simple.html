@@ -312,28 +312,51 @@
         }
 
         function uploadFile(file) {
+            console.log('\n🚀 CLIENT: Starting upload');
+            console.log('File details:', {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified
+            });
+
             const formData = new FormData();
             formData.append('file', file);
+            
+            console.log('FormData created with file field');
+            console.log('FormData entries:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ':', pair[1]);
+            }
 
             showFileInfo(file);
             showProgress();
 
+            console.log('🌐 CLIENT: Sending POST request to /upload');
             fetch('/upload', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('📡 CLIENT: Response received');
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.json();
+            })
             .then(data => {
+                console.log('📦 CLIENT: Response data:', data);
                 hideProgress();
                 if (data.success) {
                     showMessage('Arquivo enviado com sucesso!', 'success');
                     loadFiles();
                 } else {
                     showMessage(data.message || 'Erro ao enviar arquivo', 'error');
+                    console.error('❌ CLIENT: Upload failed:', data);
                 }
                 hideFileInfo();
             })
             .catch(error => {
+                console.error('❌ CLIENT: Fetch error:', error);
                 hideProgress();
                 showMessage('Erro de conexão', 'error');
                 hideFileInfo();

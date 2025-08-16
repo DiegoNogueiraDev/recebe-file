@@ -150,3 +150,10 @@ target/
 *.rar
 *.tar
 *.zip
+
+# Application auxiliary files
+.port
+.token
+server.crt
+server.key
+server.log

@@ -25,18 +25,35 @@ function checkPortAvailable(port) {
 }
 
 const uploadsDir = path.join(__dirname, 'shared-files');
+console.log('📁 Upload directory:', uploadsDir);
+
 if (!fs.existsSync(uploadsDir)) {
+    console.log('📁 Creating upload directory...');
     fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('✅ Upload directory created');
+} else {
+    console.log('✅ Upload directory exists');
 }
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
+        console.log('📁 Multer destination called');
+        console.log('Upload directory:', uploadsDir);
+        console.log('Directory exists:', fs.existsSync(uploadsDir));
         cb(null, uploadsDir);
     },
     filename: function (req, file, cb) {
+        console.log('📝 Multer filename called');
+        console.log('Original filename:', file.originalname);
+        console.log('File mimetype:', file.mimetype);
+        console.log('File encoding:', file.encoding);
+        
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-        cb(null, `${timestamp}-${originalName}`);
+        const newFilename = `${timestamp}-${originalName}`;
+        
+        console.log('Generated filename:', newFilename);
+        cb(null, newFilename);
     }
 });
 
@@ -50,16 +67,65 @@ const upload = multer({
 app.use(express.static('public'));
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    next();
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'simple.html'));
 });
 
 // Upload endpoint
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/upload', (req, res, next) => {
+    console.log('\n=== UPLOAD REQUEST RECEIVED ===');
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Content-Length:', req.headers['content-length']);
+    console.log('Raw body exists:', !!req.body);
+    console.log('Body keys:', Object.keys(req.body || {}));
+    
+    // Log before multer processing
+    console.log('Processing with multer...');
+    next();
+}, upload.single('file'), (req, res) => {
+    console.log('\n=== AFTER MULTER PROCESSING ===');
+    console.log('req.file exists:', !!req.file);
+    console.log('req.files exists:', !!req.files);
+    console.log('req.body after multer:', req.body);
+    
+    if (req.file) {
+        console.log('File details:', {
+            fieldname: req.file.fieldname,
+            originalname: req.file.originalname,
+            encoding: req.file.encoding,
+            mimetype: req.file.mimetype,
+            destination: req.file.destination,
+            filename: req.file.filename,
+            path: req.file.path,
+            size: req.file.size
+        });
+    } else {
+        console.log('❌ NO FILE RECEIVED');
+        console.log('Available form fields:', Object.keys(req.body || {}));
+        console.log('Raw request details:');
+        console.log('- Method:', req.method);
+        console.log('- URL:', req.url);
+        console.log('- Content-Type:', req.headers['content-type']);
+        console.log('- Content-Length:', req.headers['content-length']);
+    }
+    
     if (!req.file) {
         return res.status(400).json({ 
             success: false, 
-            message: 'Nenhum arquivo foi enviado' 
+            message: 'Nenhum arquivo foi enviado',
+            debug: {
+                contentType: req.headers['content-type'],
+                contentLength: req.headers['content-length'],
+                bodyKeys: Object.keys(req.body || {}),
+                hasFiles: !!req.files
+            }
         });
     }
 
@@ -70,7 +136,10 @@ app.post('/upload', upload.single('file'), (req, res) => {
         uploadTime: new Date().toISOString()
     };
 
-    console.log(`Arquivo recebido: ${fileInfo.originalName} (${(fileInfo.size / 1024 / 1024).toFixed(2)} MB)`);
+    console.log(`✅ Arquivo recebido: ${fileInfo.originalName} (${(fileInfo.size / 1024 / 1024).toFixed(2)} MB)`);
+    console.log(`✅ Salvo como: ${fileInfo.filename}`);
+    console.log(`✅ Localização: ${uploadsDir}/${fileInfo.filename}`);
+    console.log('=================================\n');
 
     res.json({
         success: true,
@@ -127,18 +196,43 @@ app.get('/download/:filename', (req, res) => {
 
 // Error handling
 app.use((error, req, res, next) => {
+    console.log('\n❌ ERROR CAUGHT:');
+    console.log('Error type:', error.constructor.name);
+    console.log('Error message:', error.message);
+    console.log('Error stack:', error.stack);
+    
     if (error instanceof multer.MulterError) {
+        console.log('Multer error code:', error.code);
+        console.log('Multer error field:', error.field);
+        
         if (error.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({
                 success: false,
-                message: 'Arquivo muito grande. Limite máximo: 500MB'
+                message: 'Arquivo muito grande. Limite máximo: 500MB',
+                debug: {
+                    errorCode: error.code,
+                    limit: '500MB'
+                }
             });
         }
+        
+        return res.status(400).json({
+            success: false,
+            message: `Erro de upload: ${error.message}`,
+            debug: {
+                errorCode: error.code,
+                field: error.field
+            }
+        });
     }
 
+    console.log('❌ Unhandled error:', error);
     res.status(500).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: 'Erro interno do servidor',
+        debug: {
+            error: error.message
+        }
     });
 });
 
