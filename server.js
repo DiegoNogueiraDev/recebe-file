@@ -47,9 +47,6 @@ const fileFilter = (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const mimeType = file.mimetype;
     
-    // Debug logging
-    console.log(`File validation: ${file.originalname}, ext: ${ext}, mime: ${mimeType}`);
-    
     // Check file extension
     if (!allowedExtensions.includes(ext)) {
         return cb(new Error(`File type not allowed. Allowed types: ${allowedExtensions.join(', ')}`), false);
@@ -57,7 +54,6 @@ const fileFilter = (req, file, cb) => {
     
     // Check MIME type
     if (!allowedMimeTypes.includes(mimeType)) {
-        console.log(`MIME type rejected: ${mimeType}, allowed: ${allowedMimeTypes.join(', ')}`);
         return cb(new Error('Invalid file format detected'), false);
     }
     
