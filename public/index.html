@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload de Arquivo Compactado</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="upload-card">
+            <h1>📦 Upload de Arquivo Compactado</h1>
+            <p class="description">Envie arquivos compactados (.zip, .7z, .rar, .tar.gz) até 100MB</p>
+            
+            <!-- Upload Form -->
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <p class="upload-text">
+                            <strong>Clique para selecionar</strong> ou arraste o arquivo aqui
+                        </p>
+                        <p class="upload-hint">Formatos aceitos: ZIP, 7Z, RAR, TAR.GZ</p>
+                    </div>
+                    <input type="file" id="fileInput" name="compressedFile" accept=".zip,.7z,.rar,.tar,.gz,.tar.gz" hidden>
+                </div>
+            </form>
+
+            <!-- File Info Display -->
+            <div id="fileInfo" class="file-info hidden">
+                <div class="file-details">
+                    <span class="file-name" id="fileName"></span>
+                    <span class="file-size" id="fileSize"></span>
+                </div>
+                <button type="button" id="removeFile" class="btn-remove">✕</button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="progress-container hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+
+            <!-- Upload Button -->
+            <button type="button" id="uploadBtn" class="btn-upload hidden" disabled>
+                Fazer Upload
+            </button>
+
+            <!-- Messages -->
+            <div id="messageContainer" class="message-container">
+                <!-- Success and error messages will be displayed here -->
+            </div>
+
+            <!-- Upload History -->
+            <div id="uploadHistory" class="upload-history hidden">
+                <h3>📋 Histórico de Uploads</h3>
+                <div id="historyList" class="history-list">
+                    <!-- Upload history items will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Sistema de Upload de Arquivos Compactados v1.0</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
