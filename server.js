@@ -12,20 +12,6 @@ if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Allowed compressed file types
-const allowedMimeTypes = [
-    'application/zip',
-    'application/x-zip-compressed',
-    'application/x-7z-compressed',
-    'application/x-rar-compressed',
-    'application/x-tar',
-    'application/gzip',
-    'application/x-gzip',
-    'application/octet-stream' // Generic binary file type (relies on extension validation)
-];
-
-const allowedExtensions = ['.zip', '.7z', '.rar', '.tar', '.gz', '.tar.gz'];
-
 // Multer configuration
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -42,29 +28,10 @@ const storage = multer.diskStorage({
     }
 });
 
-// File filter for security validation
-const fileFilter = (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const mimeType = file.mimetype;
-    
-    // Check file extension
-    if (!allowedExtensions.includes(ext)) {
-        return cb(new Error(`File type not allowed. Allowed types: ${allowedExtensions.join(', ')}`), false);
-    }
-    
-    // Check MIME type
-    if (!allowedMimeTypes.includes(mimeType)) {
-        return cb(new Error('Invalid file format detected'), false);
-    }
-    
-    cb(null, true);
-};
-
 const upload = multer({
     storage: storage,
-    fileFilter: fileFilter,
     limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB limit
+        fileSize: 3 * 1024 * 1024 * 1024, // 3GB limit
         files: 1 // Only one file at a time
     }
 });
@@ -110,7 +77,7 @@ app.use((error, req, res, next) => {
         if (error.code === 'LIMIT_FILE_SIZE') {
             return res.status(413).json({
                 success: false,
-                message: 'File too large. Maximum size is 100MB'
+                message: 'File too large. Maximum size is 3GB'
             });
         }
         if (error.code === 'LIMIT_UNEXPECTED_FILE') {
@@ -121,12 +88,6 @@ app.use((error, req, res, next) => {
         }
     }
     
-    if (error.message.includes('File type not allowed') || error.message.includes('Invalid file format')) {
-        return res.status(400).json({
-            success: false,
-            message: error.message
-        });
-    }
     
     console.error('Server error:', error);
     res.status(500).json({
@@ -140,9 +101,13 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server with extended timeout for large files
+const server = app.listen(PORT, () => {
     console.log(`File upload server running on port ${PORT}`);
     console.log(`Upload directory: ${uploadsDir}`);
-    console.log(`Allowed file types: ${allowedExtensions.join(', ')}`);
+    console.log(`Max file size: 3GB`);
 });
+
+// Extend timeout to 30 minutes for large file uploads
+server.timeout = 30 * 60 * 1000;
+server.keepAliveTimeout = 30 * 60 * 1000;

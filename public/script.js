@@ -17,18 +17,8 @@ const historyList = document.getElementById('historyList');
 let selectedFile = null;
 let isUploading = false;
 
-// Allowed file types
-const allowedTypes = [
-    'application/zip',
-    'application/x-zip-compressed',
-    'application/x-7z-compressed',
-    'application/x-rar-compressed',
-    'application/x-tar',
-    'application/gzip',
-    'application/x-gzip'
-];
-
-const allowedExtensions = ['.zip', '.7z', '.rar', '.tar', '.gz', '.tar.gz'];
+// Max file size: 3GB
+const MAX_FILE_SIZE = 3 * 1024 * 1024 * 1024;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -103,40 +93,17 @@ function handleFileValidation(file) {
     // Clear previous messages
     clearMessages();
 
-    // Size validation (100MB)
-    const maxSize = 100 * 1024 * 1024;
-    if (file.size > maxSize) {
-        showMessage('Arquivo muito grande. Tamanho máximo: 100MB', 'error');
+    // Size validation (3GB)
+    if (file.size > MAX_FILE_SIZE) {
+        showMessage('Arquivo muito grande. Tamanho máximo: 3GB', 'error');
         return;
-    }
-
-    // Extension validation
-    const fileExtension = getFileExtension(file.name);
-    if (!allowedExtensions.includes(fileExtension)) {
-        showMessage(`Tipo de arquivo não permitido. Tipos aceitos: ${allowedExtensions.join(', ')}`, 'error');
-        return;
-    }
-
-    // MIME type validation
-    if (!allowedTypes.includes(file.type)) {
-        // Some browsers might not detect MIME correctly for some formats
-        // So we'll be more lenient with MIME type checking
-        console.warn('MIME type not in whitelist, but proceeding based on extension:', file.type);
     }
 
     // File is valid
     selectedFile = file;
     displayFileInfo(file);
     showUploadButton();
-    showMessage('Arquivo válido selecionado. Pronto para upload!', 'success');
-}
-
-function getFileExtension(filename) {
-    const ext = filename.toLowerCase();
-    if (ext.endsWith('.tar.gz')) {
-        return '.tar.gz';
-    }
-    return ext.substring(ext.lastIndexOf('.'));
+    showMessage('Arquivo selecionado. Pronto para upload!', 'success');
 }
 
 function displayFileInfo(file) {
@@ -218,8 +185,8 @@ function uploadFile() {
         finishUpload();
     });
 
-    // Set timeout (5 minutes)
-    xhr.timeout = 5 * 60 * 1000;
+    // Set timeout (30 minutes for large files)
+    xhr.timeout = 30 * 60 * 1000;
 
     // Send request
     xhr.open('POST', '/upload', true);

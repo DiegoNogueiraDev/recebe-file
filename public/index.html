@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload de Arquivo Compactado</title>
+    <title>Upload de Arquivos</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="upload-card">
-            <h1>📦 Upload de Arquivo Compactado</h1>
-            <p class="description">Envie arquivos compactados (.zip, .7z, .rar, .tar.gz) até 100MB</p>
+            <h1>📁 Upload de Arquivos</h1>
+            <p class="description">Envie qualquer arquivo até 3GB</p>
             
             <!-- Upload Form -->
             <form id="uploadForm" enctype="multipart/form-data">
@@ -20,9 +20,9 @@
                         <p class="upload-text">
                             <strong>Clique para selecionar</strong> ou arraste o arquivo aqui
                         </p>
-                        <p class="upload-hint">Formatos aceitos: ZIP, 7Z, RAR, TAR.GZ</p>
+                        <p class="upload-hint">Qualquer tipo de arquivo</p>
                     </div>
-                    <input type="file" id="fileInput" name="compressedFile" accept=".zip,.7z,.rar,.tar,.gz,.tar.gz" hidden>
+                    <input type="file" id="fileInput" name="compressedFile" hidden>
                 </div>
             </form>
 
@@ -64,7 +64,7 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p>Sistema de Upload de Arquivos Compactados v1.0</p>
+            <p>Sistema de Upload de Arquivos v2.0</p>
         </footer>
     </div>
 
